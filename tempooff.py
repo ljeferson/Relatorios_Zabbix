@@ -24,7 +24,7 @@ except Exception as err:
     print('Erro: {}'.format(err))
 
 
-hostname = 'SICI'
+hostgroup = 'SICI'
 
 
 getHostGroup = zapi.do_request('hostgroup.get',
@@ -32,7 +32,7 @@ getHostGroup = zapi.do_request('hostgroup.get',
                                 "output": "extend",
                                 "filter": {
                                     "name": [
-                                        hostname
+                                        hostgroup
                                     ],
                                 "sortfield": ["name"],
                                 "sortorder": "DESC"
