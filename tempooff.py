@@ -9,11 +9,11 @@ zabbix = {}
 with open('conf.json', 'r') as confs:
     zabbix = json.loads(confs.read())
 
-timeFrom = "01/01/2020 00:00"
-timeTill = "31/01/2020 23:59"
+timeFrom = "01/01/2020 00:00:00"
+timeTill = "31/01/2020 23:59:59"
 
-fromTimestamp = time.mktime(datetime.strptime(timeFrom, "%d/%m/%Y %H:%M").timetuple())
-tillTimestamp = time.mktime(datetime.strptime(timeTill, "%d/%m/%Y %H:%M").timetuple())
+fromTimestamp = time.mktime(datetime.strptime(timeFrom, "%d/%m/%Y %H:%M:%S").timetuple())
+tillTimestamp = time.mktime(datetime.strptime(timeTill, "%d/%m/%Y %H:%M:%S").timetuple())
 
 
 try:
@@ -65,31 +65,41 @@ events = 0
 hostName = ''
 totalOffTime = timedelta()
 
-for ev in sortedResult:
-    getR_event = zapi.do_request('event.get', {"output": "extend",
-                                               "eventids": ev['r_eventid'],
-                                               })
-    if(ev['name'] != hostName):
-        print('Host: {0} - Tempo off: {1} - eventos: {2}'.format(hostName.split(' ')[0].split(' ')[0], totalOffTime, events) )
-        hostName = ev['name']
-        events = 0
-        totalOffTime = timedelta()
+#Tempo formatado para criação de arquivo
+timeFromFormated = timeFrom.replace('/', '_').replace(':', '_')
+timeTillFormated = timeTill.replace('/', '_').replace(':', '_')
 
 
-    totalOffTime += datetime.fromtimestamp(int(getR_event['result'][0]['clock'])) - datetime.fromtimestamp(int(ev['clock']))
+with open('relatorio-{0}_to_{1}.csv'.format(timeFromFormated, timeTillFormated), 'w') as relatorio:
+    for ev in sortedResult:
+        getR_event = zapi.do_request('event.get', {"output": "extend",
+                                                   "eventids": ev['r_eventid'],
+                                                   })
+        if(ev['name'] != hostName):
+            if(hostName == ''):
+                relatorio.write('Host;Tempo Off;Incidentes\n' )
+            else:
+                relatorio.write('{0};{1};{2}\n'.format(hostName.split(' is')[0], totalOffTime, events))
+            hostName = ev['name']
+            events = 0
+            totalOffTime = timedelta()
 
+        if(ev['r_eventid'] != "0"):
+            totalOffTime += datetime.fromtimestamp(int(getR_event['result'][0]['clock'])) - datetime.fromtimestamp(int(ev['clock']))
+        else:
+            totalOffTime += datetime.fromtimestamp(int(tillTimestamp)) - datetime.fromtimestamp(int(ev['clock']))
 
-    #print('{}\n\n'.format(json.dumps(getR_event, indent=4, separators=("", " : "))))
-
-    '''
-    print('{0},{1},{2},{3},{4},{5}'.format(events+1,
-                        ev['eventid'],
-                        ev['name'],
-                        datetime.fromtimestamp(int(ev['clock'])),
-                        datetime.fromtimestamp(int(getR_event['result'][0]['clock'])),
-                        datetime.fromtimestamp(int(getR_event['result'][0]['clock'])) - datetime.fromtimestamp(int(ev['clock']))
-                        )
-    )
-    '''
-
-    events += 1
+        print('{0},{1},{2}'.format(events+1, ev['eventid'], ev['name']), totalOffTime)
+        '''
+        print('{0},{1},{2},{3},{4},{5}'.format(events+1,
+                            ev['eventid'],
+                            ev['name'],
+                            datetime.fromtimestamp(int(ev['clock'])),
+                            datetime.fromtimestamp(int(getR_event['result'][0]['clock'])),
+                            datetime.fromtimestamp(int(getR_event['result'][0]['clock'])) - datetime.fromtimestamp(int(ev['clock']))
+                            )
+        )
+        '''
+        events += 1
+        if(sortedResult[-1] == ev):
+            relatorio.write('{0};{1};{2}\n'.format(hostName.split(' is')[0], totalOffTime, events))
