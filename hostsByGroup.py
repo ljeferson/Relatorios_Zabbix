@@ -41,40 +41,39 @@ getHostGroup = zapi.do_request('hostgroup.get',
                         )
 
 
-print(getHostGroup)
-#apiVersion = zapi.do_request('apiinfo.version')
-
-
-request = zapi.do_request('event.get',
+getHost = zapi.do_request('host.get',
                             {
                                 "output": "extend",
-                                "select_acknowledges": "extend",
-                                "selectTags": "extend",
-                                "selectSuppressionData": "extend",
-                                "groupids": getHostGroup['result'][0]["groupid"],
-                                "severities": [5],
-                                "time_from": fromTimestamp,
-                                "time_till": tillTimestamp
+                                "selectGroups": "extend",
+                                "groupids": getHostGroup['result'][0]["groupid"]
                             }
                         )
 
-sortedResult = json.loads(json.dumps(request['result'], sort_keys=True))
+#sortedResult = json.loads(json.dumps(request['result'], sort_keys=True))
 
-print('{}\n\n'.format(json.dumps(request, indent=4, separators=("", " : "))))
+#print('{}\n{}\n'.formt(request).format(json.dumps(request, indent=4, separators=("", " : "))))
 events = 0
 hostName = ''
 totalOffTime = timedelta()
 
 #Tempo formatado para criação de arquivo
-timeFromFormated = timeFrom.replace('/', '_').replace(':', '_')
-timeTillFormated = timeTill.replace('/', '_').replace(':', '_')
+#timeFromFormated = timeFrom.replace('/', '_').replace(':', '_')
+#timeTillFormated = timeTill.replace('/', '_').replace(':', '_')
+
+print('{}\n\n'.format(json.dumps(getHost, indent=4, separators=("", " : "))))
 
 
-with open('relatorio-{0}_to_{1}.csv'.format(timeFromFormated, timeTillFormated), 'w') as relatorio:
-    for ev in sortedResult:
-        getR_event = zapi.do_request('event.get', {"output": "extend",
-                                                   "eventids": ev['r_eventid'],
-                                                   })
+
+with open('hosts.csv', 'w') as arqhosts:
+    for host in getHost['result']:
+        arqhosts.write('{0};{1}\n'.format(host['host'], host['name']))
+        events += 1
+
+print('\nQuantidade de hosts: {}'.format(events))
+
+'''
+with open('hosts.csv', 'w') as relatorio:
+    for ev in hostGet:
         if(ev['name'] != hostName):
             if(hostName == ''):
                 relatorio.write('Host;Tempo Off;Incidentes\n' )
@@ -90,7 +89,7 @@ with open('relatorio-{0}_to_{1}.csv'.format(timeFromFormated, timeTillFormated),
             totalOffTime += datetime.fromtimestamp(int(tillTimestamp)) - datetime.fromtimestamp(int(ev['clock']))
 
         print('{0},{1},{2}'.format(events+1, ev['eventid'], ev['name']), totalOffTime)
-        '''
+        
         print('{0},{1},{2},{3},{4},{5}'.format(events+1,
                             ev['eventid'],
                             ev['name'],
@@ -99,7 +98,8 @@ with open('relatorio-{0}_to_{1}.csv'.format(timeFromFormated, timeTillFormated),
                             datetime.fromtimestamp(int(getR_event['result'][0]['clock'])) - datetime.fromtimestamp(int(ev['clock']))
                             )
         )
-        '''
+        
         events += 1
         if(sortedResult[-1] == ev):
             relatorio.write('{0};{1};{2}\n'.format(hostName.split(' is')[0], totalOffTime, events))
+'''
